@@ -1,3 +1,4 @@
+# _*_coding:utf-8_*_
 import xmltodict
 import json
 import re
@@ -6,6 +7,15 @@ try:
     import xml.etree.cElementTree as ET
 except ImportError:
     import xml.etree.ElementTree as ET
+
+#将英文字符转换为中文字符
+def E_trans_to_C(string):
+    E_pun = u',.!?[]()\''
+    E_pun_eng = u'{}()[].,|&*/#~:;?!\'-'
+    C_pun_chinese = u'「」（）【】。，｜&*/#～：；？！\'-'
+    C_pun = u'，。！？【】（）‘'
+    table= {ord(f):ord(t) for f,t in zip(E_pun_eng, C_pun_chinese)}
+    return string.translate(table)
 
 #保留中文信息
 def leave_chinese(str_list):
@@ -16,8 +26,11 @@ def leave_chinese(str_list):
             "[^\u4e00-\u9fa5&\u3002&\uff1f&\uff01&\uff0c&\u3001&\uff1b&\uff1a&\u201c&\u201d&\u2018&\u2019&\uff08&"
             "\uff09&\u300a&\u300b&\u3008&\u3009&\u3010&\u3011&\u300e&\u300f&\u300c&\u300d&\ufe43&\ufe44&\u3014"
             "&\u3015&\u2026&\u2014&\uff5e&\ufe4f&\uffe5]")
-        # 将string1中匹配到的字符替换成空字符
-        out_list.append(cop.sub('', s))
+        cop2 = re.compile('<[^/][\s\w\."=-]*">')
+        s1 = cop2.sub('', s)
+        s2 = E_trans_to_C(s1)
+        out_list.append(cop.sub('', s2))
+        # print(out_list)
     return out_list
 
 #json版算法，文本格式为xml，故废弃
@@ -75,7 +88,8 @@ def format_coref_my_deep(elem, text_coref, tag_first = True):
             text_coref[-1][elem.attrib['ID']].append(''.join(leave_chinese(str(elem.text) + coref_str)))
         return str(coref_str)
 
-with open('./data/coref_data.json', 'w+', encoding='utf-8') as g:
+with open('./data/coref_data.json', 'w+') as g:
+    out_data = []
     for fpathe,dirs,fs in os.walk('./data/annotations'):
       for file in fs:
           if file.endswith('.coref'):
@@ -93,7 +107,12 @@ with open('./data/coref_data.json', 'w+', encoding='utf-8') as g:
                 for text, coref in zip(text_list, text_coref):
                     # print(text)
                     # print(coref)
-                    json.dump({'text':text, 'coref': coref}, g, ensure_ascii=False)
+                    # json.dump({'text':text, 'coref': coref}, g, ensure_ascii = False)
+                    # if u'天津与俄罗斯经贸关系' in text:
+                    #     print(os.path.join(fpathe, file))
+                    out_data.append({'text':text, 'coref': coref})
+
+    json.dump({"data":out_data}, g, ensure_ascii = False)
 
 
 
